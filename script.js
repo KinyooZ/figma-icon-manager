@@ -59,8 +59,8 @@ const translations = {
   },
   zh: {
     'announce': 'Figma 图标库 → GitHub，一次 commit 完成。',
-    'hero.title.1': '设计你的图标。',
-    'hero.title.2': '以代码形式交付。',
+    'hero.title.1': '设计你的图标.',
+    'hero.title.2': '以代码形式交付.',
     'hero.sub': '一个 Figma 插件，扫描图标库，校验命名规范，一键发布生产级 React 组件到 GitHub —— 一次点击，一次 commit。',
     'cta.github': '查看 GitHub →',
     'cta.quickstart': '工作原理',
