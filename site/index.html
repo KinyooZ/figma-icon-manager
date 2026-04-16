@@ -8,6 +8,7 @@
       name="description"
       content="Figma plugin that scans your icon library and publishes React components to GitHub with one click."
     />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -17,6 +18,9 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <!-- Cursor spotlight (mouse-follow blurred glow) -->
+    <div class="cursor-glow" aria-hidden="true"></div>
+
     <!-- Top navigation -->
     <header class="topnav">
       <div class="container topnav-inner">
@@ -63,10 +67,8 @@
           <div class="hero-split">
             <div class="hero-left">
               <h1 class="hero-title">
-                <span data-i18n="hero.title.1">Design your icons.</span><br />
-                <span data-i18n="hero.title.2"
-                  >Ship them as code.</span
-                >
+                <span data-i18n="hero.title.1">Design your icons</span><br />
+                <span data-i18n="hero.title.2">Ship them as code</span>
               </h1>
               <p class="hero-sub" data-i18n="hero.sub">
                 A Figma plugin that scans your icon library, validates naming,
@@ -383,7 +385,11 @@
         </div>
 
         <div class="code-split">
-          <div class="code-block">
+          <div class="code-block frame">
+            <span class="cross cross-tl">+</span>
+            <span class="cross cross-tr">+</span>
+            <span class="cross cross-bl">+</span>
+            <span class="cross cross-br">+</span>
             <div class="code-header">
               <span class="code-label" data-i18n="code.import">Your App</span>
               <span class="code-lang">.tsx</span>
@@ -395,7 +401,11 @@
 &lt;<span class="tok-tag">Colored.Flag</span> <span class="tok-attr">size</span>={<span class="tok-num">32</span>} /&gt;</code></pre>
           </div>
 
-          <div class="code-block">
+          <div class="code-block frame">
+            <span class="cross cross-tl">+</span>
+            <span class="cross cross-tr">+</span>
+            <span class="cross cross-bl">+</span>
+            <span class="cross cross-br">+</span>
             <div class="code-header">
               <span class="code-label" data-i18n="code.generated">Generated</span>
               <span class="code-lang">src/icons/</span>
@@ -442,8 +452,27 @@
             <span data-i18n="install.clone">Clone the repo</span>
           </div>
           <div class="install-cmd">
-            <span class="prompt">$</span>
-            <code>git clone https://github.com/KinyooZ/figma-icon-manager.git</code>
+            <div class="install-cmd-bar">
+              <span class="install-cmd-tag">bash</span>
+              <button
+                type="button"
+                class="copy-btn"
+                aria-label="Copy command"
+                data-copy="git clone https://github.com/KinyooZ/figma-icon-manager.git"
+              >
+                <svg class="icon-copy" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                <svg class="icon-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </button>
+            </div>
+            <div class="install-cmd-row">
+              <span class="prompt">$</span>
+              <code>git clone https://github.com/KinyooZ/figma-icon-manager.git</code>
+            </div>
           </div>
 
           <div class="install-step">
@@ -451,8 +480,27 @@
             <span data-i18n="install.build">Install and build</span>
           </div>
           <div class="install-cmd">
-            <span class="prompt">$</span>
-            <code>npm install &amp;&amp; npm run build</code>
+            <div class="install-cmd-bar">
+              <span class="install-cmd-tag">bash</span>
+              <button
+                type="button"
+                class="copy-btn"
+                aria-label="Copy command"
+                data-copy="npm install && npm run build"
+              >
+                <svg class="icon-copy" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                <svg class="icon-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </button>
+            </div>
+            <div class="install-cmd-row">
+              <span class="prompt">$</span>
+              <code>npm install &amp;&amp; npm run build</code>
+            </div>
           </div>
 
           <div class="install-step">

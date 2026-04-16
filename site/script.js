@@ -5,8 +5,8 @@
 const translations = {
   en: {
     'announce': 'Figma icon library → GitHub, in a single commit.',
-    'hero.title.1': 'Design your icons.',
-    'hero.title.2': 'Ship them as code.',
+    'hero.title.1': 'Design your icons',
+    'hero.title.2': 'Ship them as code',
     'hero.sub': 'A Figma plugin that scans your icon library, validates naming, and publishes production-ready React components to GitHub — one click, one commit.',
     'cta.github': 'View on GitHub →',
     'cta.quickstart': 'How it works',
@@ -59,8 +59,8 @@ const translations = {
   },
   zh: {
     'announce': 'Figma 图标库 → GitHub，一次 commit 完成。',
-    'hero.title.1': '设计你的图标.',
-    'hero.title.2': '以代码形式交付.',
+    'hero.title.1': '设计你的图标',
+    'hero.title.2': '以代码形式交付',
     'hero.sub': '一个 Figma 插件，扫描图标库，校验命名规范，一键发布生产级 React 组件到 GitHub —— 一次点击，一次 commit。',
     'cta.github': '查看 GitHub →',
     'cta.quickstart': '工作原理',
@@ -144,4 +144,105 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.lang-btn').forEach((btn) => {
     btn.addEventListener('click', () => setLanguage(btn.dataset.lang));
   });
+
+  initCursorGlow();
+  initCopyButtons();
 });
+
+// ============================================
+// Copy buttons: copy text from data-copy and
+// flip icon to ✓ for ~1.5s as confirmation.
+// ============================================
+function initCopyButtons() {
+  const buttons = document.querySelectorAll('.copy-btn');
+  if (!buttons.length) return;
+
+  async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
+    }
+    // Fallback for non-secure contexts (e.g. file://)
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:-1000px;left:-1000px;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const text = btn.getAttribute('data-copy') || '';
+      if (!text || btn.classList.contains('copied')) return;
+      const ok = await copyText(text);
+      if (!ok) return;
+      btn.classList.add('copied');
+      setTimeout(() => btn.classList.remove('copied'), 1500);
+    });
+  });
+}
+
+// ============================================
+// Cursor spotlight: blurred white glow that
+// trails the cursor with eased lerp delay.
+// ============================================
+function initCursorGlow() {
+  const glow = document.querySelector('.cursor-glow');
+  if (!glow) return;
+  // Skip on touch / coarse pointer devices
+  if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return;
+
+  let targetX = window.innerWidth / 2;
+  let targetY = window.innerHeight / 2;
+  let currentX = targetX;
+  let currentY = targetY;
+  let visible = false;
+  let rafId = null;
+
+  // Lerp factor: lower = more lag, higher = snappier. 0.08 ≈ silky trail.
+  const EASE = 0.08;
+
+  function setTransform() {
+    // translate3d positions top-left at cursor, then translate(-50%, -50%)
+    // shifts the glow back by half its own size so it centers on the cursor.
+    glow.style.transform =
+      'translate3d(' +
+      currentX +
+      'px,' +
+      currentY +
+      'px, 0) translate(-50%, -50%)';
+  }
+
+  function tick() {
+    currentX += (targetX - currentX) * EASE;
+    currentY += (targetY - currentY) * EASE;
+    setTransform();
+    rafId = requestAnimationFrame(tick);
+  }
+
+  window.addEventListener('mousemove', (e) => {
+    targetX = e.clientX;
+    targetY = e.clientY;
+    if (!visible) {
+      // Snap to first known position so it doesn't fly in from origin
+      currentX = targetX;
+      currentY = targetY;
+      setTransform();
+      glow.classList.add('visible');
+      visible = true;
+    }
+    if (!rafId) rafId = requestAnimationFrame(tick);
+  }, { passive: true });
+
+  document.addEventListener('mouseleave', () => {
+    glow.classList.remove('visible');
+  });
+
+  document.addEventListener('mouseenter', () => {
+    if (visible) glow.classList.add('visible');
+  });
+}
