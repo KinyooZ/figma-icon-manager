@@ -1,0 +1,12 @@
+{
+  "name": "Icon Manager",
+  "id": "1625720397083479332",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "dist/ui.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": ["https://api.github.com"],
+    "reasoning": "需要访问 GitHub API 来发布图标组件到代码仓库"
+  }
+}
