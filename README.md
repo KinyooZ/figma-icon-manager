@@ -25,16 +25,25 @@ Your Figma file must follow these rules (validated by the plugin):
 3. All icon **Components** must use **PascalCase** naming (e.g. `ArrowUp`, `ChevronDown`)
 4. No duplicate names within the same category
 
+### Install
+
+**For end users — no build needed:**
+
+1. Download the latest `figma-icon-manager-vX.Y.Z.zip` from the [Releases page](https://github.com/KinyooZ/figma-icon-manager/releases)
+2. Unzip it anywhere on your machine
+3. In Figma: `Plugins → Development → Import plugin from manifest...` → select the `manifest.json` inside the unzipped folder
+
+**For developers — build from source:** see the [Development](#development) section below.
+
 ### Usage
 
-1. **Import plugin** — In Figma: `Plugins → Development → Import plugin from manifest...` → select `manifest.json`
-2. **Configure GitHub** — Click Settings, fill in:
+1. **Configure GitHub** — Click Settings, fill in:
    - Personal Access Token (needs `repo` scope)
    - Repository owner / name
    - Target branch (e.g. `main`)
    - Base path in repo (e.g. `src/icons`)
-3. **Scan icons** — Validates the file structure and naming
-4. **Publish** — Pushes generated components to GitHub
+2. **Scan icons** — Validates the file structure and naming
+3. **Publish** — Pushes generated components to GitHub
 
 ### Output Structure
 
@@ -106,16 +115,25 @@ Figma 文件必须遵循以下结构（插件会校验）：
 3. 所有 icon Component 必须使用**大驼峰命名**（如 `ArrowUp`、`ChevronDown`）
 4. 同一分类内组件名不可重复
 
+### 安装
+
+**普通用户 — 无需构建：**
+
+1. 从 [Releases 页面](https://github.com/KinyooZ/figma-icon-manager/releases) 下载最新的 `figma-icon-manager-vX.Y.Z.zip`
+2. 解压到任意位置
+3. 在 Figma 中：`Plugins → Development → Import plugin from manifest...` → 选择解压后文件夹里的 `manifest.json`
+
+**开发者 — 从源码构建：** 请参考下方 [本地开发](#本地开发) 章节。
+
 ### 使用流程
 
-1. **导入插件** — 在 Figma 中：`Plugins → Development → Import plugin from manifest...` → 选择 `manifest.json`
-2. **配置 GitHub** — 点击设置，填入：
+1. **配置 GitHub** — 点击设置，填入：
    - Personal Access Token（需要 `repo` 权限）
    - 仓库拥有者 / 名称
    - 目标分支（如 `main`）
    - 图标文件在仓库中的基础路径（如 `src/icons`）
-3. **扫描图标** — 校验 Figma 文件结构和命名
-4. **发布** — 推送生成的组件到 GitHub
+2. **扫描图标** — 校验 Figma 文件结构和命名
+3. **发布** — 推送生成的组件到 GitHub
 
 ### 生成文件结构
 
