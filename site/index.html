@@ -452,35 +452,42 @@
 
           <div class="install-step">
             <span class="install-num">01</span>
-            <span data-i18n="install.clone">Clone the repo</span>
+            <span data-i18n="install.download">Download the latest release</span>
           </div>
           <div class="install-cmd">
-            <div class="install-cmd-bar">
-              <span class="install-cmd-tag">bash</span>
-              <button
-                type="button"
-                class="copy-btn"
-                aria-label="Copy command"
-                data-copy="git clone https://github.com/KinyooZ/figma-icon-manager.git"
-              >
-                <svg class="icon-copy" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="9" y="9" width="13" height="13" rx="2"/>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                </svg>
-                <svg class="icon-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-              </button>
-            </div>
-            <div class="install-cmd-row">
-              <span class="prompt">$</span>
-              <code>git clone https://github.com/KinyooZ/figma-icon-manager.git</code>
+            <div class="install-cmd-row install-cmd-row--link">
+              <a
+                class="install-link"
+                href="https://github.com/KinyooZ/figma-icon-manager/releases/latest"
+                target="_blank"
+                rel="noopener"
+                data-i18n="install.download.cta"
+              >Open Releases page →</a>
+              <span class="install-hint" data-i18n="install.download.hint">
+                Download <code>figma-icon-manager-vX.Y.Z.zip</code> and unzip it
+              </span>
             </div>
           </div>
 
           <div class="install-step">
             <span class="install-num">02</span>
-            <span data-i18n="install.build">Install and build</span>
+            <span data-i18n="install.import">
+              In Figma: Plugins → Development → Import plugin from manifest...
+            </span>
+          </div>
+          <div class="install-cmd">
+            <div class="install-cmd-row install-cmd-row--link">
+              <span class="install-hint" data-i18n="install.import.hint">
+                Pick the <code>manifest.json</code> inside the unzipped folder
+              </span>
+            </div>
+          </div>
+
+          <div class="install-divider" aria-hidden="true"></div>
+
+          <div class="install-step install-step--muted">
+            <span class="install-tag" data-i18n="install.dev.tag">FOR DEVELOPERS</span>
+            <span data-i18n="install.dev.desc">Build from source</span>
           </div>
           <div class="install-cmd">
             <div class="install-cmd-bar">
@@ -489,7 +496,7 @@
                 type="button"
                 class="copy-btn"
                 aria-label="Copy command"
-                data-copy="npm install && npm run build"
+                data-copy="git clone https://github.com/KinyooZ/figma-icon-manager.git && cd figma-icon-manager && npm install && npm run build"
               >
                 <svg class="icon-copy" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2"/>
@@ -502,15 +509,8 @@
             </div>
             <div class="install-cmd-row">
               <span class="prompt">$</span>
-              <code>npm install &amp;&amp; npm run build</code>
+              <code>git clone &hellip; &amp;&amp; npm install &amp;&amp; npm run build</code>
             </div>
-          </div>
-
-          <div class="install-step">
-            <span class="install-num">03</span>
-            <span data-i18n="install.import">
-              In Figma: Plugins → Development → Import plugin from manifest...
-            </span>
           </div>
         </div>
       </div>
