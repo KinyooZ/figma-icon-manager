@@ -121,6 +121,29 @@ section,
   .cursor-glow { display: none; }
 }
 
+/* ---------- Scroll reveal animation ---------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.75s cubic-bezier(0.2, 0.6, 0.2, 1),
+              transform 0.75s cubic-bezier(0.2, 0.6, 0.2, 1);
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
 /* ---------- Top nav (always-on-top fixed bar) ---------- */
 .topnav {
   position: fixed;
@@ -340,6 +363,8 @@ body {
   margin-bottom: 32px;
   /* Reserve 3 lines worth so EN/ZH wrap differences don't shift CTA below */
   min-height: calc(3em * 1.6);
+  /* Prevent orphan words on last line */
+  text-wrap: pretty;
 }
 
 .hero-cta {
@@ -374,8 +399,67 @@ body {
 }
 
 .btn-primary:hover {
-  background: #d8d8d8;
-  transform: translateY(-1px);
+  background: #e8e8e8;
+}
+
+/* ---------- Arrow slide on primary button hover ----------
+ * Replay-on-hover + no-revert trick:
+ * The element's DEFAULT state equals the ANIMATION'S END state.
+ * So when :hover is lost, the animation is removed and the element
+ * sits at the end state — visually identical, no snap-back.
+ * Each new hover re-runs the animation from its `from` keyframe.
+ */
+.btn-arrow-slot {
+  position: relative;
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  overflow: hidden;       /* hard-clips whichever arrow is off-slot */
+  vertical-align: -0.08em;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.btn-arrow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1em;             /* explicit size so % translates are predictable */
+  height: 1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  will-change: transform;
+}
+
+/* Default (idle) state == animation END state.
+   - --out has already exited right (hidden, clipped)
+   - --in sits centered (visible)
+   => User sees exactly ONE arrow at idle. */
+.btn-arrow--out { transform: translateX(200%); }
+.btn-arrow--in  { transform: translateX(0); }
+
+.btn-primary:hover .btn-arrow--out {
+  animation: arrow-slot-out 0.4s cubic-bezier(0.5, 0, 0.2, 1);
+}
+.btn-primary:hover .btn-arrow--in {
+  animation: arrow-slot-in 0.4s cubic-bezier(0.5, 0, 0.2, 1);
+}
+
+@keyframes arrow-slot-out {
+  from { transform: translateX(0); }        /* re-enters at center */
+  to   { transform: translateX(200%); }     /* exits right (clipped) */
+}
+
+@keyframes arrow-slot-in {
+  from { transform: translateX(-200%); }    /* starts off-slot left (clipped) */
+  to   { transform: translateX(0); }         /* lands centered */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary:hover .btn-arrow--out,
+  .btn-primary:hover .btn-arrow--in { animation: none; }
 }
 
 .btn-secondary {
@@ -567,6 +651,8 @@ section {
   line-height: 1.2;
   /* Reserve 2 lines so EN/ZH wrap differences don't shift content below */
   min-height: calc(2em * 1.2);
+  /* Balance lines so last line isn't a lone word */
+  text-wrap: balance;
 }
 
 .section-sub {
@@ -577,6 +663,8 @@ section {
   line-height: 1.6;
   /* Reserve 2 lines worth of height for stable layout across languages */
   min-height: calc(2em * 1.6);
+  /* Prevent orphan words on last line */
+  text-wrap: pretty;
 }
 
 /* ---------- Features (2-column bordered frame) ---------- */
@@ -721,8 +809,6 @@ section {
   color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.7;
-  /* Reserve 3 lines so EN/ZH wrap differences don't shift the next step */
-  min-height: calc(3em * 1.7);
 }
 
 .step-content code {
@@ -870,7 +956,7 @@ section {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
+  width: 24px;
   height: 24px;
   padding: 0;
   background: transparent;
@@ -895,15 +981,9 @@ section {
 
 .copy-btn .icon-check {
   display: none;
-  color: #4ade80;
 }
 
-.copy-btn.copied {
-  color: #4ade80;
-  border-color: rgba(74, 222, 128, 0.3);
-  background: rgba(74, 222, 128, 0.08);
-}
-
+/* Copied state: keep neutral styling (no green), just swap icon */
 .copy-btn.copied .icon-copy { display: none; }
 .copy-btn.copied .icon-check { display: inline-flex; }
 

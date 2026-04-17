@@ -1,4 +1,17 @@
 // ============================================
+// Scroll behaviour: always land on hero on refresh
+// ============================================
+if ('scrollRestoration' in history) {
+  history.scrollRestoration = 'manual';
+}
+window.addEventListener('beforeunload', () => {
+  // Clear any hash so reload doesn't jump to an anchor either
+  if (window.location.hash) {
+    try { window.scrollTo(0, 0); } catch (e) {}
+  }
+});
+
+// ============================================
 // Bilingual language toggle
 // ============================================
 
@@ -8,7 +21,7 @@ const translations = {
     'hero.title.1': 'Design your icons',
     'hero.title.2': 'Ship them as code',
     'hero.sub': 'A Figma plugin that scans your icon library, validates naming, and publishes production-ready React components to GitHub — one click, one commit.',
-    'cta.github': 'View on GitHub →',
+    'cta.github': 'View on GitHub',
     'cta.quickstart': 'How it works',
     'mockup.status': '✓ 128 icons validated',
     'mockup.outlined': 'Outlined',
@@ -62,7 +75,7 @@ const translations = {
     'hero.title.1': '设计你的图标',
     'hero.title.2': '以代码形式交付',
     'hero.sub': '一个 Figma 插件，扫描图标库，校验命名规范，一键发布生产级 React 组件到 GitHub —— 一次点击，一次 commit。',
-    'cta.github': '查看 GitHub →',
+    'cta.github': '查看 GitHub',
     'cta.quickstart': '工作原理',
     'mockup.status': '✓ 已校验 128 个图标',
     'mockup.outlined': 'Outlined',
@@ -147,7 +160,57 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initCursorGlow();
   initCopyButtons();
+  initScrollReveal();
 });
+
+// Force scroll to top on load (covers refresh + back-forward cache cases)
+window.addEventListener('load', () => window.scrollTo(0, 0));
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted) window.scrollTo(0, 0);
+});
+
+// ============================================
+// Scroll reveal: fade/slide sections into view
+// using IntersectionObserver.
+// ============================================
+function initScrollReveal() {
+  if (!('IntersectionObserver' in window)) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const selectors = [
+    '.hero-frame',
+    '.feature-frame',
+    '.section-head',
+    '.steps-frame',
+    '.code-split > .code-block',
+    '.install-box',
+  ];
+
+  const targets = document.querySelectorAll(selectors.join(','));
+  if (!targets.length) return;
+
+  targets.forEach((el, i) => {
+    el.classList.add('reveal');
+    // Stagger siblings slightly (e.g. 2 code blocks, 3 steps within a group)
+    if (el.matches('.code-split > .code-block')) {
+      el.style.transitionDelay = (i % 2) * 120 + 'ms';
+    }
+  });
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, {
+    threshold: 0.08,
+    rootMargin: '0px 0px -60px 0px',
+  });
+
+  targets.forEach((el) => observer.observe(el));
+}
 
 // ============================================
 // Copy buttons: copy text from data-copy and
