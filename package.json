@@ -1,6 +1,6 @@
 {
   "name": "figma-icon-manager",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Figma 图标管理插件 - 从 Figma 发布 React 图标组件到 GitHub",
   "author": "KinyooZ",
   "license": "MIT",
