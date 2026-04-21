@@ -14,7 +14,7 @@ import {
   generateCategoryIndex,
   generateRootIndex,
 } from './component-generator';
-import { pushFiles, verifyConfig } from './github';
+import { pushFiles, verifyConfig, listManagedFiles } from './github';
 
 type Page = 'config' | 'publish';
 
@@ -152,19 +152,36 @@ export function App() {
         content: generateRootIndex(scanResult.summary),
       });
 
+      setPublishProgress('正在对比仓库现有文件...');
+
+      const existingPaths = await listManagedFiles(config, basePath);
+      const newPathSet = new Set(files.map((f) => f.path));
+      const stalePaths = existingPaths.filter((p) => !newPathSet.has(p));
+
       setPublishProgress(
-        `正在推送 ${files.length} 个文件到 GitHub...`
+        stalePaths.length > 0
+          ? `正在推送 ${files.length} 个文件、清理 ${stalePaths.length} 个过期文件...`
+          : `正在推送 ${files.length} 个文件到 GitHub...`
       );
+
+      const commitMessage =
+        stalePaths.length > 0
+          ? `chore(icons): 更新图标组件 (${scanResult.icons.length} icons, 清理 ${stalePaths.length} 个过期文件)`
+          : `chore(icons): 更新图标组件 (${scanResult.icons.length} icons)`;
 
       const commitSha = await pushFiles(
         config,
         files,
-        `chore(icons): 更新图标组件 (${scanResult.icons.length} icons)`
+        commitMessage,
+        stalePaths
       );
 
       setPublishResult({
         success: true,
-        message: `发布成功！共 ${scanResult.icons.length} 个图标，Commit: ${commitSha.slice(0, 7)}`,
+        message:
+          stalePaths.length > 0
+            ? `发布成功！共 ${scanResult.icons.length} 个图标，清理 ${stalePaths.length} 个过期文件，Commit: ${commitSha.slice(0, 7)}`
+            : `发布成功！共 ${scanResult.icons.length} 个图标，Commit: ${commitSha.slice(0, 7)}`,
       });
     } catch (e: any) {
       setPublishResult({

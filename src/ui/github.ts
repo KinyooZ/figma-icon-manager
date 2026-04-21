@@ -57,6 +57,76 @@ export async function verifyConfig(config: GithubConfig): Promise<void> {
   );
 }
 
+interface ContentEntry {
+  type: 'file' | 'dir' | 'submodule' | 'symlink';
+  path: string;
+  name: string;
+}
+
+async function listDir(
+  config: GithubConfig,
+  path: string
+): Promise<ContentEntry[]> {
+  try {
+    const encoded = path
+      .split('/')
+      .filter(Boolean)
+      .map(encodeURIComponent)
+      .join('/');
+    const endpoint = `/repos/${config.owner}/${config.repo}/contents/${encoded}?ref=${encodeURIComponent(config.branch)}`;
+    const res = await ghFetch<ContentEntry[] | ContentEntry>(config, endpoint);
+    return Array.isArray(res) ? res : [res];
+  } catch (e: any) {
+    // 目录不存在（首次发布）时返回空列表
+    if (/\b404\b/.test(e.message)) return [];
+    throw e;
+  }
+}
+
+/**
+ * 列出仓库中由插件管理的文件路径
+ *
+ * 管理范围:
+ *   {basePath}/index.ts
+ *   {basePath}/types.ts
+ *   {basePath}/{outlined|filled|colored}/*.tsx
+ *   {basePath}/{outlined|filled|colored}/index.ts
+ *
+ * 其他文件不在插件管理范围内，发布时不会被触碰。
+ */
+export async function listManagedFiles(
+  config: GithubConfig,
+  basePath: string
+): Promise<string[]> {
+  const normalized = basePath.replace(/^\/+|\/+$/g, '');
+  const prefix = normalized ? `${normalized}/` : '';
+  const results: string[] = [];
+
+  const rootEntries = await listDir(config, normalized);
+  for (const entry of rootEntries) {
+    if (
+      entry.type === 'file' &&
+      (entry.name === 'index.ts' || entry.name === 'types.ts')
+    ) {
+      results.push(entry.path);
+    }
+  }
+
+  for (const category of ['outlined', 'filled', 'colored']) {
+    const dirEntries = await listDir(config, `${prefix}${category}`);
+    for (const entry of dirEntries) {
+      if (
+        entry.type === 'file' &&
+        (entry.name.endsWith('.tsx') || entry.name === 'index.ts')
+      ) {
+        results.push(entry.path);
+      }
+    }
+  }
+
+  return results;
+}
+
 /**
  * 将文件列表以单次 commit 推送到 GitHub 仓库
  *
@@ -71,7 +141,8 @@ export async function verifyConfig(config: GithubConfig): Promise<void> {
 export async function pushFiles(
   config: GithubConfig,
   files: FileEntry[],
-  commitMessage: string
+  commitMessage: string,
+  deletePaths: string[] = []
 ): Promise<string> {
   const { owner, repo, branch } = config;
   const repoBase = `/repos/${owner}/${repo}`;
@@ -111,7 +182,17 @@ export async function pushFiles(
     };
   });
 
-  const treeItems = await Promise.all(blobPromises);
+  const blobItems = await Promise.all(blobPromises);
+
+  // 将删除项以 sha: null 写入 tree（配合 base_tree 即可从仓库移除）
+  const deleteItems = deletePaths.map((path) => ({
+    path,
+    mode: '100644' as const,
+    type: 'blob' as const,
+    sha: null,
+  }));
+
+  const treeItems = [...blobItems, ...deleteItems];
 
   // 4. 创建新 tree
   const newTree = await ghFetch<{ sha: string }>(
