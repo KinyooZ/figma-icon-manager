@@ -14,7 +14,13 @@ import {
   generateCategoryIndex,
   generateRootIndex,
 } from './component-generator';
-import { pushFiles, verifyConfig, listManagedFiles } from './github';
+import { pushFiles, verifyConfig, listManagedFiles, getFileText } from './github';
+import {
+  decideBumpLevel,
+  bumpSemver,
+  readPackageVersion,
+  setPackageVersion,
+} from './version';
 
 type Page = 'config' | 'publish';
 
@@ -155,8 +161,46 @@ export function App() {
       setPublishProgress('正在对比仓库现有文件...');
 
       const existingPaths = await listManagedFiles(config, basePath);
+      const existingSet = new Set(existingPaths);
       const newPathSet = new Set(files.map((f) => f.path));
       const stalePaths = existingPaths.filter((p) => !newPathSet.has(p));
+
+      // 统计图标增删，用于自动决定版本号
+      const addedTsx = files.filter(
+        (f) => f.path.endsWith('.tsx') && !existingSet.has(f.path)
+      ).length;
+      const removedTsx = stalePaths.filter((p) => p.endsWith('.tsx')).length;
+
+      // 读取仓库根 package.json 并按 semver 自动 bump 版本号，与图标放进
+      // 同一个 commit（推上去后 CI 会自动打对应的 v<version> tag）。
+      // 失败不阻断发布——图标照常推送，仅跳过版本更新。
+      let newVersion: string | null = null;
+      try {
+        setPublishProgress('正在更新版本号...');
+        const pkgText = await getFileText(config, 'package.json');
+        const currentVersion = pkgText ? readPackageVersion(pkgText) : null;
+        if (pkgText && currentVersion) {
+          const major = Number(currentVersion.split('.')[0]) || 0;
+          const level = decideBumpLevel({
+            major,
+            hasRemovals: removedTsx > 0,
+            hasAdditions: addedTsx > 0,
+          });
+          const bumped = bumpSemver(currentVersion, level);
+          if (bumped !== currentVersion) {
+            files.push({
+              path: 'package.json',
+              content: setPackageVersion(pkgText, bumped),
+            });
+            newVersion = bumped;
+          }
+        }
+      } catch (e: any) {
+        console.warn(
+          '版本号自动更新失败，将不改动 package.json：',
+          e && e.message
+        );
+      }
 
       setPublishProgress(
         stalePaths.length > 0
@@ -164,10 +208,13 @@ export function App() {
           : `正在推送 ${files.length} 个文件到 GitHub...`
       );
 
+      const actionLabel = newVersion
+        ? `发布 v${newVersion}`
+        : '更新图标组件';
       const commitMessage =
         stalePaths.length > 0
-          ? `chore(icons): 更新图标组件 (${scanResult.icons.length} icons, 清理 ${stalePaths.length} 个过期文件)`
-          : `chore(icons): 更新图标组件 (${scanResult.icons.length} icons)`;
+          ? `chore(icons): ${actionLabel} (${scanResult.icons.length} icons, 清理 ${stalePaths.length} 个过期文件)`
+          : `chore(icons): ${actionLabel} (${scanResult.icons.length} icons)`;
 
       const commitSha = await pushFiles(
         config,
@@ -176,12 +223,14 @@ export function App() {
         stalePaths
       );
 
+      const versionPrefix = newVersion ? `已发布 v${newVersion}！` : '发布成功！';
       setPublishResult({
         success: true,
         message:
-          stalePaths.length > 0
-            ? `发布成功！共 ${scanResult.icons.length} 个图标，清理 ${stalePaths.length} 个过期文件，Commit: ${commitSha.slice(0, 7)}`
-            : `发布成功！共 ${scanResult.icons.length} 个图标，Commit: ${commitSha.slice(0, 7)}`,
+          versionPrefix +
+          (stalePaths.length > 0
+            ? `共 ${scanResult.icons.length} 个图标，清理 ${stalePaths.length} 个过期文件，Commit: ${commitSha.slice(0, 7)}`
+            : `共 ${scanResult.icons.length} 个图标，Commit: ${commitSha.slice(0, 7)}`),
       });
     } catch (e: any) {
       setPublishResult({

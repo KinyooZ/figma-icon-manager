@@ -63,6 +63,39 @@ interface ContentEntry {
   name: string;
 }
 
+/** 解码 GitHub contents API 返回的 base64 内容（按 UTF-8） */
+function decodeBase64Utf8(b64: string): string {
+  const binary = atob(b64.replace(/\n/g, ''));
+  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+/**
+ * 读取仓库中某个文件的文本内容。文件不存在时返回 null。
+ */
+export async function getFileText(
+  config: GithubConfig,
+  path: string
+): Promise<string | null> {
+  try {
+    const encoded = path
+      .split('/')
+      .filter(Boolean)
+      .map(encodeURIComponent)
+      .join('/');
+    const endpoint = `/repos/${config.owner}/${config.repo}/contents/${encoded}?ref=${encodeURIComponent(config.branch)}`;
+    const res = await ghFetch<{ content?: string; encoding?: string }>(
+      config,
+      endpoint
+    );
+    if (!res.content) return null;
+    return decodeBase64Utf8(res.content);
+  } catch (e: any) {
+    if (/\b404\b/.test(e.message)) return null;
+    throw e;
+  }
+}
+
 async function listDir(
   config: GithubConfig,
   path: string
