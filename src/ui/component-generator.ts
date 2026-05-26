@@ -84,10 +84,16 @@ function extractSvgChildren(
 
   // 根据分类清除硬编码颜色
   if (category === 'outlined') {
-    // 线性图标：移除子元素上的 stroke 硬编码颜色，让父级 stroke={color} 继承
-    // 同时移除子元素上的 fill（通常是 "none"）以外的硬编码 fill 颜色
-    inner = removeHardcodedColors(inner, 'stroke');
-    inner = removeHardcodedFillExceptNone(inner);
+    // 线性图标可能是「描边 + 填充细节」混合，逐元素保留各自画法，
+    // 只把具体颜色换成 currentColor（由父级 color prop 统一着色）：
+    // - 描边元素：stroke 换 currentColor，并剥掉写死的 stroke-width，
+    //   交给组件的 strokeWidth prop 统一控制
+    // - 填充细节：fill 换 currentColor（保留填充，绝不自动加描边）
+    // - fill="none" / "transparent" 原样保留
+    // 注意：父级 <svg> 不设全局 stroke，所以纯填充元素不会被继承描边。
+    inner = recolorToCurrentColor(inner, 'stroke');
+    inner = recolorToCurrentColor(inner, 'fill');
+    inner = stripStrokeWidth(inner);
   } else if (category === 'filled') {
     // 填充图标：移除子元素上的 fill 硬编码颜色，让父级 fill={color} 继承
     inner = removeHardcodedColors(inner, 'fill');
@@ -116,17 +122,34 @@ function removeHardcodedColors(svg: string, attr: string): string {
 }
 
 /**
- * 移除 fill 属性中非 "none" 的硬编码颜色
- * 保留 fill="none"（outlined 图标需要子元素的 fill="none"）
+ * 将指定属性(fill/stroke)上的具体颜色值替换为 currentColor。
+ * 保留属性本身（不删除），不触碰 none / transparent / inherit / 已是 currentColor 的值。
+ * 这样元素原本的画法（描边或填充）得以保留，仅颜色交由 color prop 控制。
  */
-function removeHardcodedFillExceptNone(svg: string): string {
-  return svg.replace(
-    /\sfill="([^"]*)"/gi,
-    (match, value: string) => {
-      if (value.toLowerCase() === 'none') return match; // 保留 fill="none"
-      return ''; // 移除硬编码颜色
-    }
+function recolorToCurrentColor(svg: string, attr: 'fill' | 'stroke'): string {
+  const colorPattern = new RegExp(
+    `(\\s${attr}=")(?:#[0-9a-fA-F]{3,8}|(?:rgb|rgba|hsl|hsla)\\([^)]*\\)|black|white|red|green|blue|gray|grey|orange|purple|yellow|pink|brown)(")`,
+    'gi'
   );
+  return svg.replace(colorPattern, `$1currentColor$2`);
+}
+
+/**
+ * 移除子元素上写死的 stroke-width，使描边宽度由组件的 strokeWidth prop 统一控制。
+ */
+function stripStrokeWidth(svg: string): string {
+  return svg.replace(/\sstroke-width="[^"]*"/gi, '');
+}
+
+/**
+ * 取图标中第一个出现的 stroke-width 作为组件默认线宽（找不到则返回 null）。
+ * 用于让生成的组件默认值跟随 Figma 实际描边宽度。
+ */
+function extractStrokeWidth(svg: string): number | null {
+  const m = svg.match(/stroke-width="([\d.]+)"/i);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isFinite(n) ? n : null;
 }
 
 /**
@@ -145,19 +168,22 @@ export function generateComponent(icon: IconData): string {
     return generateFilledComponent(name, viewBox, children);
   }
 
-  return generateOutlinedComponent(name, viewBox, children);
+  // outlined：默认线宽跟随 Figma 实际描边宽度（找不到则回退 2）
+  const defaultStrokeWidth = extractStrokeWidth(svg) ?? 2;
+  return generateOutlinedComponent(name, viewBox, children, defaultStrokeWidth);
 }
 
 function generateOutlinedComponent(
   name: string,
   viewBox: string,
-  children: string
+  children: string,
+  defaultStrokeWidth: number
 ): string {
   return `import { forwardRef } from 'react';
 import type { IconProps } from '../types';
 
 const ${name} = forwardRef<SVGSVGElement, IconProps>(
-  ({ size = 24, color = 'currentColor', strokeWidth = 2, ...props }, ref) => (
+  ({ size = 24, color = 'currentColor', strokeWidth = ${defaultStrokeWidth}, ...props }, ref) => (
     <svg
       ref={ref}
       xmlns="http://www.w3.org/2000/svg"
@@ -165,7 +191,7 @@ const ${name} = forwardRef<SVGSVGElement, IconProps>(
       height={size}
       viewBox="${viewBox}"
       fill="none"
-      stroke={color}
+      color={color}
       strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
