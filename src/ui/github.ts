@@ -264,3 +264,32 @@ export async function pushFiles(
 
   return newCommit.sha;
 }
+
+/**
+ * 在仓库创建一个指向某 commit 的 tag（轻量 tag，足够 npm 按 semver 解析）。
+ * 直接由插件创建，确定性强、不依赖 CI workflow。
+ * 若同名 tag 已存在则视为成功（幂等）。
+ */
+export async function createTag(
+  config: GithubConfig,
+  tagName: string,
+  commitSha: string
+): Promise<void> {
+  try {
+    await ghFetch<any>(
+      config,
+      `/repos/${config.owner}/${config.repo}/git/refs`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          ref: `refs/tags/${tagName}`,
+          sha: commitSha,
+        }),
+      }
+    );
+  } catch (e: any) {
+    // 已存在（422 Reference already exists）视为成功
+    if (/already exists/i.test(e.message) || /\b422\b/.test(e.message)) return;
+    throw e;
+  }
+}

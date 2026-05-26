@@ -14,7 +14,13 @@ import {
   generateCategoryIndex,
   generateRootIndex,
 } from './component-generator';
-import { pushFiles, verifyConfig, listManagedFiles, getFileText } from './github';
+import {
+  pushFiles,
+  verifyConfig,
+  listManagedFiles,
+  getFileText,
+  createTag,
+} from './github';
 import {
   decideBumpLevel,
   bumpSemver,
@@ -172,7 +178,7 @@ export function App() {
       const removedTsx = stalePaths.filter((p) => p.endsWith('.tsx')).length;
 
       // 读取仓库根 package.json 并按 semver 自动 bump 版本号，与图标放进
-      // 同一个 commit（推上去后 CI 会自动打对应的 v<version> tag）。
+      // 同一个 commit。推送成功后由插件直接创建对应的 v<version> tag（见下）。
       // 失败不阻断发布——图标照常推送，仅跳过版本更新。
       let newVersion: string | null = null;
       try {
@@ -223,6 +229,17 @@ export function App() {
         stalePaths
       );
 
+      // 推送成功后，若 bump 了版本，直接创建对应的 tag（不依赖 CI，确定性强）
+      let tagNote = '';
+      if (newVersion) {
+        try {
+          setPublishProgress(`正在创建 v${newVersion} 标签...`);
+          await createTag(config, `v${newVersion}`, commitSha);
+        } catch (e: any) {
+          tagNote = `（注意：tag v${newVersion} 创建失败，请手动补打：${e.message}）`;
+        }
+      }
+
       const versionPrefix = newVersion ? `已发布 v${newVersion}！` : '发布成功！';
       setPublishResult({
         success: true,
@@ -230,7 +247,8 @@ export function App() {
           versionPrefix +
           (stalePaths.length > 0
             ? `共 ${scanResult.icons.length} 个图标，清理 ${stalePaths.length} 个过期文件，Commit: ${commitSha.slice(0, 7)}`
-            : `共 ${scanResult.icons.length} 个图标，Commit: ${commitSha.slice(0, 7)}`),
+            : `共 ${scanResult.icons.length} 个图标，Commit: ${commitSha.slice(0, 7)}`) +
+          tagNote,
       });
     } catch (e: any) {
       setPublishResult({
