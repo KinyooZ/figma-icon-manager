@@ -13,21 +13,41 @@ const PASCAL_CASE_RE = /^[A-Z][0-9a-zA-Z]+$/;
  * 注意：linearGradient / radialGradient 不在此列——彩色图标依赖渐变上色，
  * 属于正当用法，放行。
  */
-const DISALLOWED_ELEMENTS: { tag: string; label: string }[] = [
-  { tag: 'mask', label: 'mask 蒙版' },
-  { tag: 'clipPath', label: 'clipPath 裁剪' },
-];
+interface Finding {
+  /** 出现的元素 */
+  label: string;
+  /** 设计侧的成因与改法（这些元素多由 Figma 导出时自动生成，并非手动画的蒙版） */
+  fix: string;
+}
 
-/** 检出 SVG 中出现的受限元素，返回其中文标签列表 */
-function findDisallowedElements(svg: string): string[] {
-  const found: string[] = [];
-  for (const { tag, label } of DISALLOWED_ELEMENTS) {
-    // 只匹配元素本身（<mask ...>），不匹配 mask="url(#x)" 这类属性引用
-    if (new RegExp(`<${tag}[\\s>]`, 'i').test(svg)) {
-      found.push(label);
-    }
+/**
+ * 检出 SVG 中的受限元素，并给出对应的设计侧改法。
+ *
+ * 只匹配元素本身（<mask ...>），不会误伤 mask="url(#x)" 这类属性引用。
+ */
+function findDisallowedElements(svg: string): Finding[] {
+  const findings: Finding[] = [];
+
+  if (/<mask[\s>]/i.test(svg)) {
+    // Figma 导出内描边时会生成 id 形如 path-1-inside-1_xxx 的蒙版：
+    // SVG 原生只支持居中描边，Figma 用蒙版裁掉外半边来模拟「内部」对齐
+    const isInsideStroke = /<mask[^>]*id="[^"]*inside[^"]*"/i.test(svg);
+    findings.push({
+      label: 'mask 蒙版',
+      fix: isInsideStroke
+        ? '描边对齐设成了「内部 Inside」，请改为「居中 Center」'
+        : '图层或画板勾选了「裁剪内容 Clip content」，请取消勾选；若确为蒙版图层，请改用拼合形状',
+    });
   }
-  return found;
+
+  if (/<clipPath[\s>]/i.test(svg)) {
+    findings.push({
+      label: 'clipPath 裁剪',
+      fix: '画板勾选了「裁剪内容 Clip content」，请取消勾选',
+    });
+  }
+
+  return findings;
 }
 
 /**
@@ -76,14 +96,14 @@ export function validateIcons(icons: IconData[]): ValidationError[] {
     }
   }
 
-  // 4. 受限结构校验：mask / clipPath 带硬编码 id，阻止发布并点名图标
+  // 4. 受限结构校验：mask / clipPath 带硬编码 id，阻止发布并点名图标与改法
   for (const icon of icons) {
     if (!icon.svg) continue;
-    const found = findDisallowedElements(icon.svg);
-    if (found.length > 0) {
+    const findings = findDisallowedElements(icon.svg);
+    for (const { label, fix } of findings) {
       errors.push({
         name: icon.name,
-        message: `图标「${icon.name}」（${icon.category}）包含 ${found.join('、')}，不允许发布。这类结构带写死的 id，同一图标渲染多次会造成 DOM id 冲突。请在 Figma 中改为纯路径：描边对齐改为「居中」、用「拼合形状 / 轮廓化描边」替代蒙版和裁剪。`,
+        message: `图标「${icon.name}」（${icon.category}）导出后含 ${label}，不允许发布：${fix}。（这类结构的 id 是写死的，同一图标渲染多次会造成 DOM id 冲突）`,
       });
     }
   }
