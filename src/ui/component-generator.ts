@@ -31,6 +31,7 @@ const ATTR_MAP: Record<string, string> = {
   'color-interpolation': 'colorInterpolation',
   'color-interpolation-filters': 'colorInterpolationFilters',
   'xmlns:xlink': null as any, // 移除
+  'xlink:href': 'xlinkHref',
   class: 'className',
 };
 
@@ -57,6 +58,41 @@ function convertAttrsToJsx(svgContent: string): string {
       return ` ${jsxAttr}=`;
     }
   );
+}
+
+/**
+ * CSS 属性名 → JSX 驼峰。
+ * mask-type → maskType；-webkit-mask → WebkitMask；自定义属性 --x 原样保留并加引号。
+ */
+function toStylePropName(prop: string): string {
+  if (prop.startsWith('--')) return `'${prop}'`;
+  return prop.replace(/-([a-z])/g, (_m, c: string) => c.toUpperCase());
+}
+
+/**
+ * 将字符串形式的 style="a:b;c:d" 转成 JSX 对象写法 style={{ a: 'b', c: 'd' }}。
+ * React 的 style 只接受对象，字符串会导致 TS 编译报错（TS2559）。
+ * Figma 导出的 <mask style="mask-type:alpha"> 等元素会带上它。
+ */
+function convertStyleAttr(svg: string): string {
+  return svg.replace(/\sstyle="([^"]*)"/gi, (_match, css: string) => {
+    const entries = css
+      .split(';')
+      .map((decl) => decl.trim())
+      .filter(Boolean)
+      .map((decl) => {
+        const idx = decl.indexOf(':');
+        if (idx === -1) return null;
+        const prop = decl.slice(0, idx).trim();
+        const value = decl.slice(idx + 1).trim();
+        if (!prop || !value) return null;
+        return `${toStylePropName(prop)}: '${value.replace(/'/g, "\\'")}'`;
+      })
+      .filter((entry): entry is string => entry !== null);
+
+    if (entries.length === 0) return ''; // 空 style 直接丢弃
+    return ` style={{ ${entries.join(', ')} }}`;
+  });
 }
 
 /**
@@ -104,6 +140,8 @@ function extractSvgChildren(
 
   // 转换属性为 JSX
   inner = convertAttrsToJsx(inner);
+  // style="a:b" 必须转成对象写法，否则 TSX 编译不过
+  inner = convertStyleAttr(inner);
 
   return inner;
 }
