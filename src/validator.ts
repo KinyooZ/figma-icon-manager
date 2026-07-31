@@ -6,8 +6,8 @@ const PASCAL_CASE_RE = /^[A-Z][0-9a-zA-Z]+$/;
 /**
  * 检出 SVG 中的 mask 蒙版，并给出对应的设计侧改法。
  *
- * 含 mask 的图标发版发不出去，必须在扫描阶段拦住。而且 mask 的 id 是写死的
- * （如 mask0_330492_1472），同一图标渲染多次还会造成 DOM id 冲突。
+ * mask 的 id 是写死的（如 mask0_330492_1472），同一图标渲染多次会造成 DOM id
+ * 冲突，且多为 Figma 画法留下的冗余，所以扫描阶段直接拦住。
  *
  * 放行的：
  * - clipPath 裁剪——不影响发版
@@ -19,11 +19,16 @@ function findMaskFix(svg: string): string | null {
   if (!/<mask[\s>]/i.test(svg)) return null;
 
   // Figma 导出内描边时会生成 id 形如 path-1-inside-1_xxx 的蒙版：
-  // SVG 原生只支持居中描边，Figma 用蒙版裁掉外半边来模拟「内部」对齐
+  // SVG 原生只支持居中描边，Figma 用蒙版裁掉外半边来模拟「内部」对齐。
+  // 实战中这条几乎都出在 Union/Subtract 这类布尔拼合形状上——拼合本身不导出
+  // mask，是拼合后那圈没轮廓化的内描边导出了 mask。
   const isInsideStroke = /<mask[^>]*id="[^"]*inside[^"]*"/i.test(svg);
   return isInsideStroke
-    ? '描边对齐设成了「内部 Inside」，请改为「居中 Center」'
-    : '图层或画板勾选了「裁剪内容 Clip content」，请取消勾选；若确为蒙版图层，请改用拼合形状';
+    ? '有描边的对齐是「内部 Inside」。请重点检查 Union / Subtract 等布尔拼合形状——' +
+        '拼合后那圈描边往往没轮廓化。选中该形状执行「轮廓化描边 Outline Stroke」' +
+        '把描边转成填充，外观不变；也可把对齐改为「居中 Center」，但描边会外扩半个线宽'
+    : '图层或画板勾选了「裁剪内容 Clip content」，请取消勾选。' +
+        '若确为蒙版图层，请改用布尔拼合并「轮廓化描边 Outline Stroke」后替代';
 }
 
 /**
@@ -72,14 +77,14 @@ export function validateIcons(icons: IconData[]): ValidationError[] {
     }
   }
 
-  // 4. mask 蒙版校验：含 mask 的图标发版会失败，点名图标与改法后阻止发布
+  // 4. mask 蒙版校验：点名图标与改法后阻止发布
   for (const icon of icons) {
     if (!icon.svg) continue;
     const fix = findMaskFix(icon.svg);
     if (fix) {
       errors.push({
         name: icon.name,
-        message: `图标「${icon.name}」（${icon.category}）导出后含 mask 蒙版，无法发版：${fix}`,
+        message: `图标「${icon.name}」（${icon.category}）导出后含 mask 蒙版，不允许发布：${fix}`,
       });
     }
   }

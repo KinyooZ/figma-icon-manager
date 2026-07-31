@@ -24,9 +24,12 @@ Your Figma file must follow these rules (validated by the plugin):
 2. Under that page, top-level **Frames** must end with `Outlined`, `Filled`, or `Colored`
 3. All icon **Components** must use **PascalCase** naming (e.g. `ArrowUp`, `ChevronDown`)
 4. No duplicate names within the same category
-5. No `<mask>` in the exported SVG — masks break publishing. Usually caused by
-   stroke alignment set to **Inside** (use **Center** instead) or a layer/frame with
-   **Clip content** enabled (uncheck it). `clipPath` and gradients are fine.
+5. No `<mask>` in the exported SVG. Almost always caused by an **Inside**-aligned
+   stroke — check your **Union / Subtract** boolean shapes first, since the stroke
+   left on a merged shape is the usual culprit. Fix it with **Outline Stroke**
+   (keeps the look identical); switching alignment to **Center** also works but
+   expands the stroke by half its width. The other cause is **Clip content** on a
+   layer or frame — uncheck it. `clipPath` and gradients are fine.
 
 ### Install
 
@@ -117,9 +120,11 @@ Figma 文件必须遵循以下结构（插件会校验）：
 2. Page 下的顶层 Frame 必须以 `Outlined` / `Filled` / `Colored` 结尾
 3. 所有 icon Component 必须使用**大驼峰命名**（如 `ArrowUp`、`ChevronDown`）
 4. 同一分类内组件名不可重复
-5. 导出的 SVG 中不能含 `<mask>` 蒙版 —— 会导致发版失败。常见成因是描边对齐设成了
-   **内部 Inside**（改为**居中 Center**）或图层/画板勾选了**裁剪内容 Clip content**
-   （取消勾选）。`clipPath` 和渐变不受限制。
+5. 导出的 SVG 中不能含 `<mask>` 蒙版。绝大多数是**内部 Inside** 描边导致的 ——
+   优先检查 **Union / Subtract** 等布尔拼合形状，拼合后残留的那圈描边是最常见的成因。
+   用**轮廓化描边 Outline Stroke** 修复（外观完全不变）；改成**居中 Center** 也可以，
+   但描边会外扩半个线宽。另一种成因是图层/画板勾选了**裁剪内容 Clip content**，取消勾选即可。
+   `clipPath` 和渐变不受限制。
 
 ### 安装
 
